@@ -2,77 +2,44 @@
 
 Implementation of **Identifiability of a shared continuous condition from ordinal standards**.
 
-Fits positive-slope ordered-logistic standards with a gauge-fixed shared latent score, checks anchor-graph connectivity and structural Fisher conditioning and refuses unsupported shared scales.
+## Installation
 
-## Install
-
-Use Python 3.11 or newer.
+Use Python `>=3.11`. Run commands from the repository root. Create the environment, activate it with `source .venv/bin/activate` (Linux/macOS) or `.venv\Scripts\Activate.ps1` (PowerShell), then install the package.
 
 ```bash
-git clone https://github.com/Hqa77880011/LatentGrade.git
-cd LatentGrade
 python -m venv .venv
 ```
-
-Activate with `source .venv/bin/activate` on Linux/macOS or `.venv\Scripts\Activate.ps1` in PowerShell, then install.
 
 ```bash
 python -m pip install -e .
 ```
 
-## Data preparation
+## Data generation
 
-ratings is an item/standard integer matrix with -1 for unobserved grades. heldout grades never enter fitting. categories fixes the ordinal scale; truth_score is an evaluator-only controlled latent variable.
-
-```bash
-python -m latentgrade prepare --count 1 --seed 17 --output data/workload.jsonl
-```
-
-The generator creates finite workloads from the formal model. Each JSONL row is one scenario. `--count` controls corpus size and `--seed` controls generation. Imported cases use the same schema. Generate calibration and test scenarios independently.
-
-## Execute and compare
-
-```bash
-python -m latentgrade run --data data/workload.jsonl --output runs/main
-python -m latentgrade suite --data data/workload.jsonl --output runs/comparison
-```
-
-Select methods with `--methods`. latentgrade, shared_thresholds and no_anchor. Shared thresholds test naive equivalence of standards; no_anchor removes cross-standard observations.
-
-## Evaluation and visualization
-
-Held-out ordinal accuracy/NLL, score RMSE/rank correlation on controlled data, shared-scale refusal, graph components and gauge-projected Fisher diagnostics.
-
-Each method writes `records.jsonl` and `metrics.json` with means, sample standard deviations, usable counts and P50/P95/P99. Rates are fractions. Undefined conditional metrics remain unavailable. Method timers exclude reference scoring. RSS includes the Python runtime; serialized sizes measure JSON bytes.
-
-```bash
-python -m latentgrade plot --inputs runs/comparison/latentgrade --output figures
-```
-
-Pass multiple method directories to compare them. Plotting writes `summary.csv` and metric PNGs.
-
-## Implementation conventions
-
-Scores are normalized to population mean zero and variance one on every likelihood evaluation. Fisher information removes the two latent affine gauge directions. The numerical example estimates per-item latent scores; an amortized image encoder is not assumed. A connected graph alone does not override weak information or bad conditioning.
-
-
-## Uncertainty and paired comparisons
-
-```bash
-python -m latentgrade.statistics --records runs/main/latentgrade/records.jsonl --output results/intervals.json
-```
-
-Supply --reference with a matched record file for paired differences. Resampling uses independent case IDs, or explicit cluster IDs when provided. Repeated observations from one source unit must share cluster. Zero-event bounds refer to an event in an independent cluster.
-
-## Registered compact reproduction setting
-
-Sixteen independent finite anchor designs, 40 objects, three ordinal standards and four categories. Each design fits the shared scalar construct with its gauge and Fisher acceptance test; no image amortizer is part of this ordinal-identification task.
-
-Run from the repository root after installation. The following commands use the registered setting; they are provided for execution and have not been run as part of the source review.
+The generator writes finite ordinal-standard scenarios as JSONL with known latent conditions. The registered configuration fixes the count and seed. These are generated standards, not measurements of physical specimens.
 
 ```bash
 python -m latentgrade prepare --config configs/reproduce.json --output data/reproduce.jsonl
-python -m latentgrade suite --data data/reproduce.jsonl --output runs/reproduce
 ```
 
-This setting needs no external dataset or pretrained weights. Generated inputs and declared fault/shift laws define the finite task; reported quantities retain that provenance.
+## Execution and evaluation
+
+`run` evaluates the main method; `suite` evaluates the methods in `METHODS` on the same scenarios.
+
+```bash
+python -m latentgrade run --data data/reproduce.jsonl --output runs/main
+python -m latentgrade suite --data data/reproduce.jsonl --output runs/comparison
+```
+
+## Outputs
+
+Each `runs/<run>/<method>/` contains `records.jsonl` and `metrics.json`. The suite also writes `summary.csv`. The statistics command summarizes the main run records; plot inputs are method run directories.
+
+```bash
+python -m latentgrade.statistics --records runs/main/latentgrade/records.jsonl --output results/intervals.json
+python -m latentgrade plot --inputs runs/comparison/latentgrade --output figures
+```
+
+## Verification
+
+Source checks used Python 3.13.5. Installed dependency metadata: numpy 2.1.3, scipy 1.15.3, scikit-learn 1.6.1, matplotlib 3.10.0. Python AST, configuration files, CLI parser definitions and source input/output paths were checked without invoking command handlers. Training, full evaluation and CI were not run for this review.
